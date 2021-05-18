@@ -1,0 +1,33 @@
+//Create a teacher; request body includes login, secret, email, and name
+POST http://localhost:3000/teachers HTTP/1.1
+content-type: application/json
+
+{
+    "login": "dlpick02",
+    "secret": "Picklem@n",
+    "email": "dylan.pickle@teacher.com", 
+    "name": "Dylan Pickle" 
+}
+###
+
+
+//Remove test teacher here!
+DELETE http://localhost:3000/teachers/dlpick02 HTTP/1.1
+content-type: application/json
+###
+
+
+//Update teacher
+PUT http://localhost:3000/teachers/dlpick02 HTTP/1.1
+content-type: application/json
+
+{
+    "secret": "Chopshop234",
+    "email": "dylan.pickle2@teacher.com"
+}
+
+###
+
+//Get all teachers
+GET http://localhost:3000/teachers HTTP/1.1
+content-type: application/json
