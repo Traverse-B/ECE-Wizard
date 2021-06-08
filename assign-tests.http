@@ -1,0 +1,59 @@
+//*********************************************************                                                        
+//  Routes for teacher/student assignments        
+//*********************************************************
+
+
+
+// Get all teachers assigned to student
+GET http://localhost:3000/students/576548/assign HTTP/1.1
+content-type: application/json
+
+###
+
+// Assign a teacher to a student
+POST http://localhost:3000/students/576548/assign HTTP/1.1
+content-type: application/json
+
+{
+    "teacher_login": "cfreed01",
+    "student_id": 576548,
+    "role": "English"
+}
+
+###
+
+// Assign a full roster to a student
+POST http://localhost:3000/students/576548/assign/multiple HTTP/1.1
+content-type: application/json
+
+{
+    "values": [
+        {
+            "teacher_login": "cfreed01",
+            "student_id": 576548,
+            "role": "English"
+        },
+        {
+            "teacher_login": "cfreed01",
+            "student_id": 576548,
+            "role": "Case Manager"
+        },
+        {
+            "teacher_login": "etsalm01",
+            "student_id": 576548,
+            "role": "English"
+        }
+    ]
+}
+
+### 
+
+// Get Roles for a specific teacher for a specific student
+GET http://localhost:3000/students/576548/assign/cfreed01 HTTP/1.1
+content-type: application/json
+
+###
+
+// Delete assignment
+DELETE http://localhost:3000/students/576548/assign/cfreed01 HTTP/1.1
+content-type: application/json 

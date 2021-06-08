@@ -1,3 +1,7 @@
+//*********************************************************                                                        
+//  Routes for accessing general teacher information        
+//*********************************************************
+
 //Create a teacher; request body includes login, secret, email, and name
 POST http://localhost:3000/teachers HTTP/1.1
 content-type: application/json
@@ -23,11 +27,23 @@ content-type: application/json
 
 {
     "secret": "Chopshop234",
-    "email": "dylan.pickle2@teacher.com"
+    "email": "dylan.pickle@teacher.com"
 }
 
 ###
 
 //Get all teachers
 GET http://localhost:3000/teachers HTTP/1.1
+content-type: application/json
+
+### 
+
+// Get a specific teacher
+GET http://localhost:3000/teachers/dlpick02 HTTP/1.1
+content-type: application/json
+
+###
+
+// Get all IEP IDs for students assigned to teacher
+GET http://localhost:3000/teachers/cfreed01/dataform HTTP/1.1
 content-type: application/json

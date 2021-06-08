@@ -1,0 +1,115 @@
+//*********************************************************                                                        
+//  Routes for IEP Access      
+//*********************************************************
+
+// Get all IEPs for a student
+GET http://localhost:3000/students/534987/iep HTTP/1.1
+content-type: application/json
+
+###
+
+
+// Create an IEP for a student
+POST http://localhost:3000/students/542984/iep HTTP/1.1
+content-type: application/json
+
+{
+    "start_date": "06/16/2020",
+    "end_date": "06/16/2021",
+    "student_id": 542984,
+    "active": "TRUE"
+}
+
+
+###
+
+
+// Get active IEP for a student
+GET http://localhost:3000/students/534987/iep/active HTTP/1.1
+content-type: application/json
+
+
+###
+
+
+//Select an IEP by ID
+
+
+GET http://localhost:3000/iep/1 HTTP/1.1
+content-type: application/json
+
+###
+
+// Delete IEP by ID
+DELETE http://localhost:3000/iep/6 HTTP/1.1
+content-type: application/json
+
+
+###
+
+// Update IEP by ID
+PUT http://localhost:3000/iep/1 HTTP/1.1
+content-type: application/json
+
+
+{
+    "start_date": "03/04/2020"
+}
+
+###
+
+
+// Get all goals for an IEP
+
+GET http://localhost:3000/iep/1/goals HTTP/1.1
+content-type: application/json
+
+
+###
+
+
+// Post an iep goal to a student's active IEP
+POST http://localhost:3000/students/534987/iep/active/goals HTTP/1.1
+content-type: application/json
+
+{
+    "iep_id": 1,
+    "area": "Reading Comprehension",
+    "goal": "doloros est ipsum lorum goalie goal goal",
+    "data_question": "Any farts?",
+    "response_type": "boolean"
+}
+
+###
+
+// Get all goals for IEP by ID
+GET http://localhost:3000/iep/1/goals/ HTTP/1.1
+content-type: application/json
+
+
+###
+
+// Get goal by ID
+GET http://localhost:3000/goal/11 HTTP/1.1
+content-type: application/json
+
+
+###
+
+
+// Update goal by ID
+PUT http://localhost:3000/goal/11 HTTP/1.1
+content-type: application/json
+
+{
+    "data_question": "Fart percentage:",
+    "response_type": "percentage"
+}
+
+###
+
+// Delete goal by ID
+DELETE http://localhost:3000/goal/13 HTTP/1.1
+content-type: application/json
+
+###

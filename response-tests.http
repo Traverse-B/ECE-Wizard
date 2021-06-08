@@ -1,0 +1,13 @@
+//*********************************************************                                                        
+//  Routes for accessing IEP data responses        
+//*********************************************************
+
+// Get raw iep data from
+GET http://localhost:3000/goal/11/responses/rawdata HTTP/1.1
+content-type: application/json
+###
+
+// Get compiled IEP data by goal ID
+
+GET http://localhost:3000/goal/12/responses/compiled HTTP/1.1
+content-type: application/json

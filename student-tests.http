@@ -1,0 +1,45 @@
+//*********************************************************                                                        
+//  Routes for accessing general student information        
+//*********************************************************
+
+// Create a student
+POST http://localhost:3000/students HTTP/1.1
+content-type: application/json
+
+{
+    "id": 576548,
+    "first_name": "Doug",
+    "last_name": "Davison", 
+    "disability": "SLD R" 
+}
+
+###
+
+// Update a student
+PUT http://localhost:3000/students/576548 HTTP/1.1
+content-type: application/json
+
+{ 
+    "disability": "SLD R/W/M" 
+}
+
+###
+
+// Delete a student
+DELETE http://localhost:3000/students/576548 HTTP/1.1
+content-type: application/json
+
+###
+
+// Get all students
+GET http://localhost:3000/students/ HTTP/1.1
+content-type: application/json
+
+###
+
+// Get a student by ID
+GET http://localhost:3000/students/576548 HTTP/1.1
+content-type: application/json
+
+
+
