@@ -51,7 +51,8 @@ const selectAll = (req, res, next) => {
 
 // Add to a specific table
 const insert = (req, res, next) => {
-    const values = Object.values(req.body);
+    const arr = Object.values(req.body);
+    const values = arr.filter(value => value !== '');
     req.queryString += format('INSERT INTO %I VALUES %L RETURNING %I; ', req.table, [values], Object.keys(req.body));
     req.id.push(req.body[req.identifier[0]]);
     next();
@@ -138,7 +139,7 @@ function custom(string, index = undefined) {
 
 // Close a multiple query call
 const commit = (req, res, next) => { 
-    req.queryString += 'COMMIT;'
+    req.queryString += ' COMMIT; '
     next();
 }
 
@@ -196,7 +197,8 @@ const returnQuery = (req, res, next) => {
 }
 
 const getActive = (req, res, next) => {
-    const queryString = format("SELECT id FROM iep WHERE student_id = %s AND active = 'true';", req.id[0])
+    const queryString = format(`SELECT id FROM iep WHERE student_id = %s AND start_date < CURRENT_DATE
+    AND end_date > CURRENT_DATE;`, req.id[0])
     pool.query(queryString, (error, result) => {
         if (error) {
             console.log(error);
@@ -257,6 +259,201 @@ const compile = (req, res, next) => {
     })
 }
 
+const getMissing = (req, res, next) => {
+    const queryString = format(
+        `WITH missing_list AS
+         (WITH timespan AS (
+            WITH first_inq AS (
+                SELECT 	start_date AS teacher_start_date, 
+                          end_date AS teacher_end_date, 
+                          student_id,
+                          coteacher_login
+                  FROM teachers_students 
+                WHERE (teacher_login = %L 
+                OR coteacher_login = %L)
+                AND NOT role = 'Case Manager'
+            )
+            SELECT teacher_start_date, teacher_end_date, sec_inq.student_id, 
+                start_date AS iep_start_date, end_date AS iep_end_date, coteacher_login, id 
+            FROM first_inq JOIN (SELECT * FROM iep WHERE start_date < CURRENT_DATE
+                AND end_date > CURRENT_DATE) AS sec_inq
+            ON first_inq.student_id = sec_inq.student_id
+            )
+            SELECT DATE(date) AS date, timespan.student_id FROM calendar, timespan
+            WHERE date > teacher_start_date 
+                AND date > iep_start_date
+                AND date < teacher_end_date
+                AND date < iep_end_date
+            EXCEPT SELECT DATE(timestamp) AS date, student_id FROM attendance 
+                WHERE reporter = %L
+                    OR coteacher = %L
+            ORDER BY date) 
+            SELECT date, student_id, first_name, last_name FROM missing_list
+            JOIN student ON missing_list.student_id = student.id
+            ORDER BY date DESC;
+            `, req.id, req.id, req.id, req.id
+    );
+    console.log(queryString)
+    pool.query(queryString, (error, results) => {
+        if (error) {
+            console.log(error);
+            res.status(400).send();
+        } else {
+            // Using results, create an array of objects = {date:date, missingStudents: [a, b, c]}
+            const missingStudents = [];
+            results.rows.forEach(entry => {
+                if (
+                    missingStudents.length === 0 || 
+                    JSON.stringify(missingStudents[missingStudents.length - 1].date) !== JSON.stringify(entry.date)
+                ) {
+                    missingStudents.push({date: entry.date, students: [{id: entry.student_id, name: `${entry.first_name} ${entry.last_name}`}]});
+                } else {
+                    missingStudents[missingStudents.length - 1].students.push({id: entry.student_id, name: `${entry.first_name} ${entry.last_name}`});
+                }
+            })
+            console.log('Whew!  That was a big query!  Sent!')
+            res.send(missingStudents);
+        }
+    })
+}
+
+const iepForDate = (req, res, next) => {
+    const queryString = format(
+        `With info AS (
+            WITH active_iep AS (
+              SELECT * FROM iep 
+              WHERE student_id = %s
+                  AND start_date < DATE(%L)
+                  AND end_date > DATE(%L)
+            )
+            SELECT active_iep.student_id, id, role
+            FROM teachers_students, active_iep
+            WHERE active_iep.student_id = teachers_students.student_id
+                AND %L = teachers_students.teacher_login
+                AND NOT role = 'Case Manager')
+            SELECT iep_goal.id, iep_goal.data_question, iep_goal.response_type, iep_goal.id, info.student_id, info.id AS iep_id
+            FROM iep_goal, info
+            WHERE info.id = iep_goal.iep_id
+            AND (iep_goal.area = role OR iep_goal.area = 'Behavior');`, req.id, req.body.date, req.body.date, req.body.teacher
+    );
+    console.log(queryString);
+    pool.query(queryString, (error, results) => {
+        if (error) {
+            console.log(error);
+            res.status(400).send();
+        } else {
+            res.send(results.rows);
+        }
+    })
+}
+
+const newIep = (req, res, next) => {
+    req.queryString += format(
+                              ` UPDATE iep SET end_date = %L 
+                                WHERE student_id = %s
+                                AND start_date < CURRENT_DATE 
+                                AND end_date > CURRENT_DATE; 
+                                INSERT INTO iep VALUES 
+                                    (%L, %L, %s);`,
+                                req.body.start_date, 
+                                req.body.student_id,
+                                req.body.start_date, req.body.end_date, req.body.student_id 
+                       );
+    req.body.goals.forEach(goal => {
+        req.queryString += format(
+                                    ` INSERT INTO iep_goal  
+                                      SELECT MAX(id), '%s', '%s', '%s', '%s' FROM iep;  `,
+                                      goal.area, goal.goal, goal.data_question, goal.response_type 
+                                );
+    })
+    next();
+}
+
+const newStudent = (req, res, next) => {
+    req.queryString += format(
+        `BEGIN;
+         DELETE FROM teachers_students WHERE student_id = %s; `, req.body.student_id
+    );
+    req.queryString += format(
+        `INSERT INTO student VALUES (%s, %L, %L, %L);
+         INSERT INTO teachers_students VALUES 
+        `,
+        req.body.student_id, req.body.first_name, req.body.last_name, req.body.disability
+    );
+    // format array of values
+    const values = req.body.scheduledTeachers.map(teacher => {
+            return format(`(%L, %s, %L, %L, %L, %L)`, 
+                                        teacher.teacher_login,
+                                        teacher.student_id, 
+                                        teacher.role,
+                                        teacher.start_date,
+                                        teacher.end_date,
+                                        teacher.coteacher_login);
+    })
+    req.queryString += values.join(', ');
+    req.queryString += format(`; INSERT INTO teachers_students VALUES
+                           (%L, %s, 'TOR', CURRENT_DATE, (SELECT MAX(date) FROM calendar));
+                           COMMIT; `, req.body.TOR, req.body.student_id);
+    next();
+}
+
+const updateStudent = (req, res, next) => {
+    req.queryString += format(
+        `BEGIN;
+         DELETE FROM teachers_students WHERE student_id = %s
+         AND NOT role = 'TOR' AND NOT role = 'ADMIN'; `, req.body.student_id
+    );
+    req.queryString += format(
+        `UPDATE student SET (first_name, last_name, disability) = (%L, %L, %L)
+         WHERE id = %s; 
+         INSERT INTO teachers_students VALUES 
+        `,
+        req.body.first_name, req.body.last_name, req.body.disability, req.body.student_id
+    );
+    // format array of values
+    const values = req.body.scheduledTeachers.map(teacher => {
+            return format(`(%L, %s, %L, %L, %L, %L)`, 
+                                        teacher.teacher_login,
+                                        teacher.student_id, 
+                                        teacher.role,
+                                        teacher.start_date,
+                                        teacher.end_date,
+                                        teacher.coteacher_login);
+    })
+    req.queryString += values.join(', ');
+    req.queryString += (`; COMMIT; `);
+    next();
+}
+
+const updateTeacher = (req, res, next) => {
+    req.queryString += format(
+        `BEGIN;
+         DELETE FROM teachers_students WHERE teacher_login = %L
+         AND role = 'TOR'; `, req.body.login
+    );
+    req.queryString += format(
+        `UPDATE teacher SET (name, secret, email, user_type) = (%L, %L, %L, %L)
+         WHERE login = %L; `,
+        req.body.name, req.body.secret, req.body.email, req.body.user_type, req.body.login
+    );
+    
+    if (req.body.assignedStudents.length > 0) {
+        req.queryString += `INSERT INTO teachers_students VALUES `
+        // format array of values
+        const values = req.body.assignedStudents.map(student => {
+        return format(`(%L, %s, 'TOR', %L, %L, %L)`, 
+                                    student.teacher_login,
+                                    student.student_id,
+                                    student.start_date,
+                                    student.end_date,
+                                    student.coteacher_login);
+})
+req.queryString += values.join(', ');
+    }
+    req.queryString += (`; COMMIT; `);
+    next();
+}
+
 
 module.exports = {
     begin,
@@ -273,5 +470,11 @@ module.exports = {
     commit,
     config,
     getActive,
-    compile
+    compile,
+    getMissing,
+    iepForDate,
+    newIep,
+    newStudent,
+    updateStudent,
+    updateTeacher
 }

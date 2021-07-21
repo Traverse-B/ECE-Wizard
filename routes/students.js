@@ -21,8 +21,22 @@ studentRouter.use('/', (req, res, next) => {
 // Get all students
 studentRouter.get('/', db.selectAll, db.returnQuery);
 
+// Get student who haven't been assigned to a TOR
+studentRouter.get('/available', 
+    db.custom(
+        `WITH available AS (SELECT id FROM student
+            EXCEPT (SELECT student_id FROM teachers_students
+                             WHERE role = 'TOR')
+            )
+            SELECT student.id, first_name, last_name 
+            FROM available JOIN student
+            ON student.id = available.id; `
+    ),
+    db.returnQuery
+)
+
 // Create a student
-studentRouter.post('/', db.insert, db.returnQuery);
+studentRouter.post('/', db.newStudent, db.returnQuery);
 
 // Validate data for :id parameter
 studentRouter.param('id', db.checkExists);
@@ -31,17 +45,20 @@ studentRouter.param('id', db.checkExists);
 studentRouter.get('/:id', db.select(), db.returnQuery);
 
 // Update a student by id integer
-studentRouter.put('/:id', db.update, db.select(), db.returnQuery);
+studentRouter.put('/:id', db.updateStudent, db.runQuery);
 
 // Delete a student by id integer
 studentRouter.delete('/:id', db.deleteRows, db.runQuery);
 
-// Add teacher to a student
+// Access teacher assignments
 const assignRouter = require('./assign.js');
 studentRouter.use('/:id/assign', assignRouter);
 
 // Access student IEP information
 studentRouter.use('/:id/iep', iepAdminRouter);
+
+// Access student active iep for a given date;
+studentRouter.post('/:id/backdateiep', db.iepForDate)
 
 
 

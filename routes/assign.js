@@ -24,7 +24,16 @@ assignRouter.use('/', (req, res, next) => {
 *********************************************************/
 
 // Get all teachers assigned to student
-assignRouter.get('/', db.select(), db.returnQuery);
+assignRouter.get('/',  
+                db.custom(`WITH teachers AS (
+                            SELECT teacher_login, start_date, end_date, role, coteacher_login
+                            FROM teachers_students WHERE student_id = %s)
+                           SELECT teacher_login, name, start_date, end_date, role, coteacher_login
+                           FROM teachers JOIN teacher
+                           ON teachers.teacher_login = teacher.login;
+                
+                `, 0), 
+                db.returnQuery);
 
 // Assign a teacher to a student
 assignRouter.post('/', db.insert, db.returnQuery);

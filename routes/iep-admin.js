@@ -24,8 +24,14 @@ iepAdminRouter.use('/', (req, res, next) => {
 // Get all IEPs for a student
 iepAdminRouter.get('/', db.select(), db.returnQuery);
 
-// Create a new IEP
-iepAdminRouter.post('/', db.insert, db.returnQuery);
+
+// Create a new IEP and update old IEP
+iepAdminRouter.post('/', 
+    db.begin,
+    db.newIep, 
+    db.commit,
+    db.returnQuery
+);
 
 // Access active IEP for student
 iepAdminRouter.use('/active', db.getActive,

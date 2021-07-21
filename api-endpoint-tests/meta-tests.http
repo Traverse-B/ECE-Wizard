@@ -1,0 +1,12 @@
+
+
+//Post attendance
+POST http://localhost:3001/meta/attendance HTTP/1.1
+content-type: application/json
+
+{
+    "timestamp": "06-22-2001",
+    "reporter": "dlpick02",
+    "student_id": 576548,
+    "data": "present"
+}

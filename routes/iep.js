@@ -34,8 +34,8 @@ iepRouter.use('/goals', db.config({table: 'iep_goal', identifier: 'iep_id'}));
 // Get all goals for an IEP
 iepRouter.get('/goals', db.select(), db.returnQuery);
 
-// Create a new IEP goal 
-iepRouter.post('/goals', db.insert, db.returnQuery);
+// Create new IEP goals 
+iepRouter.post('/goals', db.insertMultiple, db.returnQuery);
 
 
 module.exports = iepRouter;

@@ -3,14 +3,23 @@
 //*********************************************************
 
 // Create a student
-POST http://localhost:3000/students HTTP/1.1
+POST http://localhost:3001/students HTTP/1.1
 content-type: application/json
 
 {
-    "id": 576548,
+    "student_id": 11111,
     "first_name": "Doug",
     "last_name": "Davison", 
-    "disability": "SLD R" 
+    "disability": "SLD R",
+    "scheduledTeachers": [
+        {
+            "login": "cfreed01",
+            "student_id": 11111,
+            "role": "Other",
+            "start_date": "2019-05-05",
+            "end_date": "2020-03-04"
+        }
+    ] 
 }
 
 ###
@@ -32,14 +41,36 @@ content-type: application/json
 ###
 
 // Get all students
-GET http://localhost:3000/students/ HTTP/1.1
+GET http://localhost:3001/students/ HTTP/1.1
 content-type: application/json
 
 ###
 
-// Get a student by ID
-GET http://localhost:3000/students/576548 HTTP/1.1
+// Get all student who haven't been assigned to a TOR
+GET http://localhost:3001/students/available HTTP/1.1
 content-type: application/json
 
 
+###
 
+// Get a student by ID6
+GET http://localhost:3001/students/576548 HTTP/1.1
+content-type: application/json
+
+###
+
+// get backdated iep goal information for student
+POST http://localhost:3001/students/534987/backdateiep HTTP/1.1
+content-type: application/json
+
+{
+    "teacher": "cfreed01",
+    "date": "2020-06-21"
+}
+
+###
+
+//BONUS get last calendar date in system
+// Get all students
+GET http://localhost:3001/lastdate/ HTTP/1.1
+content-type: application/json
