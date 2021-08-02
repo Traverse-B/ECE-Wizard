@@ -58,7 +58,19 @@ studentRouter.use('/:id/assign', assignRouter);
 studentRouter.use('/:id/iep', iepAdminRouter);
 
 // Access student active iep for a given date;
-studentRouter.post('/:id/backdateiep', db.iepForDate)
+studentRouter.post('/:id/backdateiep', db.iepForDate);
+
+//Get all goals for a given date
+studentRouter.get('/:id/allgoals', db.custom(
+    `WITH active_iep AS (SELECT * FROM iep 
+        WHERE student_id = %L
+        AND start_date < CURRENT_DATE
+        AND end_date > CURRENT_DATE
+     )
+     SELECT * FROM active_iep JOIN iep_goal
+     ON iep_id = active_iep.id;`, 0
+    ), db.returnQuery
+)
 
 
 

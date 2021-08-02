@@ -29,8 +29,8 @@ content-type: application/json
 ###
 
 
-// Get active IEP for a student
-GET http://localhost:3001/students/534987/iep/active HTTP/1.1
+// Get active IEP goal IDs for a student
+GET http://localhost:3001/students/534987/iep/activegoals HTTP/1.1
 content-type: application/json
 
 

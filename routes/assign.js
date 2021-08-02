@@ -27,7 +27,8 @@ assignRouter.use('/', (req, res, next) => {
 assignRouter.get('/',  
                 db.custom(`WITH teachers AS (
                             SELECT teacher_login, start_date, end_date, role, coteacher_login
-                            FROM teachers_students WHERE student_id = %s)
+                            FROM teachers_students WHERE student_id = %s
+                            AND NOT role = 'TOR')
                            SELECT teacher_login, name, start_date, end_date, role, coteacher_login
                            FROM teachers JOIN teacher
                            ON teachers.teacher_login = teacher.login;

@@ -9,5 +9,5 @@ content-type: application/json
 
 // Get compiled IEP data by goal ID
 
-GET http://localhost:3000/goal/12/responses/compiled HTTP/1.1
+GET http://localhost:3001/goal/8/responses/compiled HTTP/1.1
 content-type: application/json

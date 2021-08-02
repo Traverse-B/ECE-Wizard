@@ -3,9 +3,9 @@ const format = require('pg-format');
 const { Pool } = require('pg');
 const { string } = require('pg-format');
 const pool = new Pool({
-    user: 'pi',
+    user: 'postgres',
     host: 'localhost',
-    database: 'pi',
+    database: 'ecewizard',
     password: 'Lyle3mail',
     port: 5432
 });
@@ -362,8 +362,8 @@ const newIep = (req, res, next) => {
     req.body.goals.forEach(goal => {
         req.queryString += format(
                                     ` INSERT INTO iep_goal  
-                                      SELECT MAX(id), '%s', '%s', '%s', '%s' FROM iep;  `,
-                                      goal.area, goal.goal, goal.data_question, goal.response_type 
+                                      SELECT MAX(id), '%s', '%s', '%s', '%s, %s' FROM iep;  `,
+                                      goal.area, goal.goal, goal.data_question, goal.response_type, goal.metadata || "false" 
                                 );
     })
     next();
@@ -375,7 +375,7 @@ const newStudent = (req, res, next) => {
          DELETE FROM teachers_students WHERE student_id = %s; `, req.body.student_id
     );
     req.queryString += format(
-        `INSERT INTO student VALUES (%s, %L, %L, %L);
+        `INSERT INTO student VALUES (%s, %L, %L, %L, true);
          INSERT INTO teachers_students VALUES 
         `,
         req.body.student_id, req.body.first_name, req.body.last_name, req.body.disability
@@ -446,7 +446,7 @@ const updateTeacher = (req, res, next) => {
                                     student.student_id,
                                     student.start_date,
                                     student.end_date,
-                                    student.coteacher_login);
+                                    student.coteacher_login,);
 })
 req.queryString += values.join(', ');
     }
@@ -476,5 +476,5 @@ module.exports = {
     newIep,
     newStudent,
     updateStudent,
-    updateTeacher
+    updateTeacher,
 }

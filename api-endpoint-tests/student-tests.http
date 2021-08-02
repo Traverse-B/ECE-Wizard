@@ -60,17 +60,22 @@ content-type: application/json
 ###
 
 // get backdated iep goal information for student
-POST http://localhost:3001/students/534987/backdateiep HTTP/1.1
+POST http://localhost:3001/students/3333/backdateiep HTTP/1.1
 content-type: application/json
 
 {
-    "teacher": "cfreed01",
-    "date": "2020-06-21"
+    "teacher": "cfreed02",
+    "date": "2021-07-21"
 }
 
 ###
 
 //BONUS get last calendar date in system
-// Get all students
 GET http://localhost:3001/lastdate/ HTTP/1.1
+content-type: application/json
+
+###
+
+//Get all active iep goals for a student
+GET http://localhost:3001/students/3333/allgoals HTTP/1.1
 content-type: application/json
