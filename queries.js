@@ -2,7 +2,6 @@ const { response } = require('express');
 const format = require('pg-format');
 const { Pool } = require('pg');
 const { string } = require('pg-format');
-const { Pool } = require('pg');
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
