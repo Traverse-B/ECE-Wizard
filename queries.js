@@ -2,13 +2,21 @@ const { response } = require('express');
 const format = require('pg-format');
 const { Pool } = require('pg');
 const { string } = require('pg-format');
+/*
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false
   }
 });
-
+*/
+const pool = new Pool({
+    user: 'postgres',
+    host: 'localhost',
+    database: 'ecedata',
+    password: 'Lyle3mail',
+    port: 5432
+});
 
 
 // Begin a multiple query call
@@ -321,7 +329,7 @@ const iepForDate = (req, res, next) => {
     const queryString = format(
         `With info AS (
             WITH active_iep AS (
-              SELECT * FROM iep 
+              SELECT id, student_id FROM iep 
               WHERE student_id = %s
                   AND start_date < DATE(%L)
                   AND end_date > DATE(%L)
@@ -331,10 +339,10 @@ const iepForDate = (req, res, next) => {
             WHERE active_iep.student_id = teachers_students.student_id
                 AND %L = teachers_students.teacher_login
                 AND NOT role = 'Case Manager')
-            SELECT iep_goal.id, iep_goal.data_question, iep_goal.response_type, iep_goal.id, info.student_id, info.id AS iep_id
+            SELECT DISTINCT iep_goal.id, iep_goal.data_question, iep_goal.response_type, iep_goal.id, info.student_id, info.id AS iep_id
             FROM iep_goal, info
             WHERE info.id = iep_goal.iep_id
-            AND (iep_goal.area = role OR iep_goal.area = 'Behavior');`, req.id, req.body.date, req.body.date, req.body.teacher
+            AND (iep_goal.area = role OR iep_goal.area IN('All', 'BIP', 'meta'));`, req.id, req.body.date, req.body.date, req.body.teacher
     );
     console.log(queryString);
     pool.query(queryString, (error, results) => {
@@ -362,8 +370,8 @@ const newIep = (req, res, next) => {
     req.body.goals.forEach(goal => {
         req.queryString += format(
                                     ` INSERT INTO iep_goal  
-                                      SELECT MAX(id), '%s', '%s', '%s', '%s, %s' FROM iep;  `,
-                                      goal.area, goal.goal, goal.data_question, goal.response_type, goal.metadata || "false" 
+                                      SELECT MAX(id), '%s', '%s', '%s', '%s', %s, %s, %L FROM iep;`,
+                                      goal.area, goal.goal, goal.data_question, goal.response_type, goal.baseline, goal.goal_percent, goal.description
                                 );
     })
     next();

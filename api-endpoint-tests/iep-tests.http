@@ -10,18 +10,21 @@ content-type: application/json
 
 
 // Create an IEP for a student
-POST http://localhost:3001/students/542984/iep HTTP/1.1
+POST http://localhost:3001/students/1111/iep HTTP/1.1
 content-type: application/json
 
 {
     "start_date": "06/16/2018",
     "end_date": "06/16/2018",
-    "student_id": 542984,
+    "student_id": 1111,
     "goals": [{
         "area": "English",
         "goal": "Ipsum lorum goal mumbo jumbo",
         "data_question": "Does this data question make me look fat?",
-        "response_type": "boolean"    
+        "response_type": "boolean",
+        "baseline": 35,
+        "goal_percent": 68,
+        "description": "Task Completion"    
     }]
 }
 
@@ -30,7 +33,7 @@ content-type: application/json
 
 
 // Get active IEP goal IDs for a student
-GET http://localhost:3001/students/534987/iep/activegoals HTTP/1.1
+GET http://localhost:3001/students/2222/iep/activegoals HTTP/1.1
 content-type: application/json
 
 
