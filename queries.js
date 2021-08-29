@@ -294,6 +294,7 @@ const getMissing = (req, res, next) => {
                 AND date > iep_start_date
                 AND date < teacher_end_date
                 AND date < iep_end_date
+                AND date < CURRENT_DATE
             EXCEPT SELECT DATE(timestamp) AS date, student_id FROM attendance 
                 WHERE reporter = %L
                     OR coteacher = %L
