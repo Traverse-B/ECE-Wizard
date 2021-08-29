@@ -18,7 +18,9 @@ teacherRouter.use('/', (req, res, next) => {
 })
 
 // Get all teachers
-teacherRouter.get('/', db.selectAll, db.returnQuery);
+teacherRouter.get('/', db.custom(
+  `SELECT * FROM teachers ORDER BY name;`
+), db.returnQuery);
 
 // Create teacher
 teacherRouter.post('/', db.insert, db.returnQuery);
