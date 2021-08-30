@@ -2,16 +2,16 @@ const { response } = require('express');
 const format = require('pg-format');
 const { Pool } = require('pg');
 const { string } = require('pg-format');
-/*
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false
   }
 });
-*/
 
 
+/*
 const pool = new Pool({
     user: 'postgres',
     host: 'localhost',
@@ -19,7 +19,7 @@ const pool = new Pool({
     password: 'Lyle3mail',
     port: 5432
 });
-
+*/
 
 // Begin a multiple query call
 const begin = (req, res, next) => {
