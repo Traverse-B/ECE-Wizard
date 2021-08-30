@@ -17,11 +17,9 @@ responseRouter.use('/', (req, res, next) => {
     req.idType = ['%s']; // integer
     next();
 })
-// Create boolean responses
-responseRouter.post('/', db.insertMultiple, db.runQuery);
 
-// Create percentage responses
-responseRouter.post('/', db.insertMultiple, db.runQuery);
+// Create responses
+responseRouter.post('/', db.postResponse, db.runQuery)
 
 // Get raw data for interval by goal ID
 responseRouter.get('/rawdata', db.select(), db.returnQuery);

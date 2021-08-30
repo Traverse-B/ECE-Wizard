@@ -126,3 +126,25 @@ content-type: application/json
 
 ###
 
+//Post responses
+POST http://localhost:3001/response HTTP/1.1
+content-type: application/json
+
+{
+    "timestamp": "8-10-22",
+    "reporter": "cfreed01",
+    "student_id": 1111,
+    "data": "present",
+    "coteacher": null,
+    "values": [
+        {
+            "timestamp": "8-10-22",
+            "iep_goal_id": 15,
+            "data_type": "dataType",
+            "response": 100,
+            "responder": "cfreed01"
+        }
+    ]
+}
+ 
+

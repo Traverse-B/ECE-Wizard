@@ -2,16 +2,16 @@ const { response } = require('express');
 const format = require('pg-format');
 const { Pool } = require('pg');
 const { string } = require('pg-format');
-
+/*
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false
   }
 });
+*/
 
-/*
-for testing!
+
 const pool = new Pool({
     user: 'postgres',
     host: 'localhost',
@@ -19,7 +19,7 @@ const pool = new Pool({
     password: 'Lyle3mail',
     port: 5432
 });
-*/
+
 
 // Begin a multiple query call
 const begin = (req, res, next) => {
@@ -465,6 +465,21 @@ req.queryString += values.join(', ');
     next();
 }
 
+const postResponse = (req, res, next) => {
+    req.queryString = format('BEGIN;  INSERT INTO attendance VALUES (%L, %L, %s, %L, %L); ', 
+        req.body.timestamp, req.body.reporter, req.body.student_id, req.body.data, req.body.coteacher
+    )
+    if (req.body.values && req.body.values.length > 0) {
+        req.body.values.forEach(value => {
+            req.queryString += format('INSERT INTO goal_data VALUES (%L, %s, %L, %s, %L, %L); ', 
+                value.timestamp, value.iep_goal_id, value.type, value.response, value.responder, value.coteacher_login
+            )
+        })
+    }
+    req.queryString += 'COMMIT; ';
+    next();
+}
+
 
 module.exports = {
     begin,
@@ -488,4 +503,5 @@ module.exports = {
     newStudent,
     updateStudent,
     updateTeacher,
+    postResponse
 }
