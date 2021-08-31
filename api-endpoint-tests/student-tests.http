@@ -64,8 +64,8 @@ POST http://localhost:3001/students/3333/backdateiep HTTP/1.1
 content-type: application/json
 
 {
-    "teacher": "cfreed02",
-    "date": "2021-07-21"
+    "teacher": "sktras01",
+    "date": "2021-07-30"
 }
 
 ###
