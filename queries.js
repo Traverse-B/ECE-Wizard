@@ -474,6 +474,7 @@ const postResponse = (req, res, next) => {
     req.queryString = format('BEGIN;  INSERT INTO attendance VALUES (%L, %L, %s, %L, %L); ', 
         req.body.timestamp, req.body.reporter, req.body.student_id, req.body.data, req.body.coteacher
     )
+    console.log(req.body.values)
     if (req.body.values && req.body.values.length > 0) {
         req.body.values.forEach(value => {
             req.queryString += format('INSERT INTO goal_data VALUES (%L, %s, %L, %s, %L, %L); ', 
