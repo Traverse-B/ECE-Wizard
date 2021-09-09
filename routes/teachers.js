@@ -44,10 +44,11 @@ teacherRouter.get(
         ` WITH active_ieps AS (
             WITH students AS (
               SELECT teachers_students.student_id, role, coteacher_login FROM teachers_students
-              WHERE teacher_login = %L `, 0),
-    db.custom(`OR coteacher_login = %L`, 0),
+              WHERE (teacher_login = %L `, 0),
+    db.custom(`OR coteacher_login = %L) `, 0),
     db.custom(
-              `AND NOW() > start_date
+              `AND NOT role = 'TOR'
+              AND NOW() > start_date
               AND NOW() < end_date
               EXCEPT SELECT excluded.student_id, role, coteacher
               FROM (SELECT date, exclude.student_id, coteacher, reporter 

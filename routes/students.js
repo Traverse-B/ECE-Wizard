@@ -72,6 +72,19 @@ studentRouter.get('/:id/allgoals', db.custom(
     ), db.returnQuery
 )
 
+//Get attendance for a student
+studentRouter.get('/:id/attendance', db.custom(
+        `SELECT (SELECT SUM(1) AS present FROM attendance WHERE student_id = %L AND DATA = 'present'), `, 0), 
+    db.custom(
+        `(SELECT SUM(1) AS excused FROM attendance WHERE student_id = %L AND DATA = 'excused'), `, 0),
+    db.custom(
+        `(SELECT SUM(1) AS absent FROM attendance WHERE student_id = %L AND DATA = 'absent') 
+        FROM student LIMIT 1; `, 0), db.returnQuery
+)
+
+//Get responses for a student
+studentRouter.get('/:id/responses', db.sortData);
+
 
 
 

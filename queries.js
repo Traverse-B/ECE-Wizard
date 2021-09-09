@@ -253,7 +253,7 @@ const compile = (req, res, next) => {
                     firstDate.forEach(data => average += data.response);
                     average /= firstDate.length;
                     // add a reponse object to array
-                    compiled.push({date: compileDates[0].date, average: average});
+                    compiled.push({name: compileDates[0].date, "Progress Data": average});
                     // iterate through compile dates and average data that falls between dates
                     for (let i = 1; i < compileDates.length; i++) {
                         let intervalData = rawData.filter(data => {
@@ -263,7 +263,7 @@ const compile = (req, res, next) => {
                         intervalData.forEach(data => average += data.response);
                         average /= intervalData.length;
                         if (Number.isNaN(average)) average = 0;
-                        compiled.push({date: compileDates[i].date, average: average});
+                        compiled.push({name: compileDates[i].date, "Progress Data": average});
                     }
                     // return the compile dates and the compiled data
                     res.send(compiled);
@@ -271,6 +271,128 @@ const compile = (req, res, next) => {
             })
         }
     })
+}
+
+const sortData = (req, res, next) => {
+    const studentString = format(`SELECT first_name, last_name, disability FROM student WHERE id = %s`, req.id);
+    console.log(studentString);
+    pool.query(studentString, (error, results) => {
+        if (error) {
+            console.log(error);
+            res.status(400).send();
+        } else {
+            studentInfo = results.rows[0];
+            const queryString = format(
+                `WITH iep_goals AS (
+                    WITH current_iep AS (
+                        SELECT id, start_date FROM iep WHERE student_id = %s 
+                        AND CURRENT_DATE BETWEEN start_date AND end_date)
+                    SELECT iep_goal.id, start_date, goal, description, area, baseline, goal_percent, response_type FROM current_iep JOIN iep_goal
+                    ON iep_goal.iep_id = current_iep.id)
+                SELECT DISTINCT goal_data.id, type, start_date, iep_goals.id AS iep_goal_id, goal, description, AREA, baseline, goal_percent, 
+                    response_type, response, timestamp
+                FROM iep_goals JOIN goal_data ON iep_goals.id = goal_data.iep_goal_id
+                ORDER BY iep_goal_id, timestamp;`, req.id
+            )
+            console.log(queryString)
+            pool.query(queryString, (error, results) => {
+                if (error) {
+                    console.log(error)
+                    res.status(400).send();
+                } else {
+                    const rawData = results.rows;
+                    const startDate = rawData[0].start_date;
+                    const compileString = 'SELECT * FROM compile_dates; ';
+                    pool.query(compileString, (error, results) => {
+                        if (error) {
+                            console.log(error)
+                            res.status(400).send();
+                        } else {
+                            const rawDates = results.rows;
+                            const boolDates = rawDates.filter(date => date.type === 'bool');
+                            const percentDates = rawDates.filter(date => date.type === 'percent');
+                            //find ids
+                            let id = 0;
+                            let ids = []
+                            for (let i = 0; i < rawData.length; i++) {
+                                if (id !== rawData[i].iep_goal_id) {
+                                    id = rawData[i].iep_goal_id;
+                                    ids.push(rawData[i].iep_goal_id);
+                                }
+                            }
+                            const response = []
+                            ids.forEach(id => {
+                                const goalData = rawData.filter(data => data.iep_goal_id === id);
+                                //now compile
+                                let compileDates = goalData[0].type.toLowerCase() === 'bool' ? boolDates : percentDates;
+                                // iterate through data; sum results that fall between dates
+                                const compiled = [];
+                                if (goalData[0].area === 'BIP') {
+                                    let firstDate = goalData.filter(data => data.timestamp < compileDates[0].date);
+                                    let sum = 0;
+                                    firstDate.forEach(data => sum += data.response);
+                                    sum /= 100;
+                                    if (Number.isNaN(sum)) sum = 0;
+                                    // add a reponse object to array
+                                    compiled.push({name: compileDates[0].date, "Progress Data": sum});
+                                    // iterate through compile dates and sum data that falls between dates
+                                    for (let i = 1; i < compileDates.length; i++) {
+                                        let intervalData = goalData.filter(data => {
+                                            return data.timestamp.getTime() <= compileDates[i].date.getTime() && data.timestamp.getTime() > compileDates[i - 1].date.getTime();
+                                        })
+                                        sum = 0;
+                                        intervalData.forEach(data => sum += data.response);
+                                        sum /= 100;
+                                        if (Number.isNaN(sum)) sum = 0;
+                                        compiled.push({name: compileDates[i].date, "Incidents": sum});
+                                    }
+                                } else if (goalData[0].area === 'meta') {
+                                    const yes = goalData.filter(data => data.response === 100).length;
+                                    const no = goalData.length - yes;
+                                    compiled.push({name: 'yes', value: yes});
+                                    compiled.push({name: 'no', value: no});
+                                } else {
+                                    // average all data before first date
+                                    let firstDate = goalData.filter(data => data.timestamp < compileDates[0].date);
+                                    let average = 0;
+                                    firstDate.forEach(data => average += data.response);
+                                    average /= firstDate.length;
+                                    if (Number.isNaN(average)) average = 0;
+                                    // add a reponse object to array
+                                    compiled.push({name: compileDates[0].date, "Progress Data": average});
+                                    // iterate through compile dates and average data that falls between dates
+                                    for (let i = 1; i < compileDates.length; i++) {
+                                        let intervalData = goalData.filter(data => {
+                                            return data.timestamp.getTime() <= compileDates[i].date.getTime() && data.timestamp.getTime() > compileDates[i - 1].date.getTime();
+                                        })
+                                        average = 0;
+                                        intervalData.forEach(data => average += data.response);
+                                        average /= intervalData.length;
+                                        if (Number.isNaN(average)) average = 0;
+                                        compiled.push({name: compileDates[i].date, "Progress Data": average});
+                                    }
+                                }
+                                if (compiled.length > 0) compiled[0]["Goal Line"] = goalData[0].baseline;
+                                if (compiled.length > 1) compiled[compiled.length - 1]["Goal Line"] = goalData[0].goal_percent;
+                                response.push({ 
+                                    goal: goalData[0].goal,
+                                    area: goalData[0].area,
+                                    description: goalData[0].description,
+                                    compiled: compiled
+                                })
+                            })
+                            res.send({
+                                name: `${studentInfo.first_name} ${studentInfo.last_name}`,
+                                start_date: startDate,
+                                disability: studentInfo.disability,
+                                response: response
+                            })
+                        }
+                    })
+                }
+            })
+        }
+    })  
 }
 
 const getMissing = (req, res, next) => {
@@ -509,5 +631,6 @@ module.exports = {
     newStudent,
     updateStudent,
     updateTeacher,
-    postResponse
+    postResponse,
+    sortData
 }
