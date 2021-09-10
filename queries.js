@@ -302,15 +302,7 @@ const sortData = (req, res, next) => {
                 } else {
                     const rawData = results.rows;
                     const startDate = rawData[0].start_date;
-                    const compileString = `WITH next_bool AS (SELECT * FROM compile_dates WHERE DATE > CURRENT_DATE 
-                                            AND type = 'bool' ORDER BY DATE LIMIT 1),
-                                           next_percent AS (SELECT * FROM compile_dates WHERE DATE > CURRENT_DATE 
-                                            AND type = 'percent' ORDER BY DATE LIMIT 1)
-                                           SELECT * FROM compile_dates WHERE DATE <= CURRENT_DATE
-                                            UNION 
-                                            SELECT * FROM next_bool
-                                            UNION 
-                                            SELECT * FROM next_percent ORDER BY date;`;
+                    const compileString = `SELECT * FROM compile_dates ORDER BY date`;
                     pool.query(compileString, (error, results) => {
                         if (error) {
                             console.log(error)
@@ -337,22 +329,30 @@ const sortData = (req, res, next) => {
                                 const compiled = [];
                                 if (goalData[0].area === 'BIP') {
                                     let firstDate = goalData.filter(data => data.timestamp < compileDates[0].date);
-                                    let sum = 0;
-                                    firstDate.forEach(data => sum += data.response);
-                                    sum /= 100;
-                                    if (Number.isNaN(sum)) sum = 0;
-                                    // add a reponse object to array
-                                    compiled.push({name: compileDates[0].date, "Progress Data": sum});
+                                    if (firstDate.length === 0) {
+                                        compiled.push({name: compileDates[0].date, "Incidents": null})
+                                    } else {
+                                        let sum = 0;
+                                        firstDate.forEach(data => sum += data.response);
+                                        sum /= 100;
+                                        if (Number.isNaN(sum)) sum = 0;
+                                        // add a reponse object to array
+                                        compiled.push({name: compileDates[0].date, "Incidents": sum});
+                                    }
                                     // iterate through compile dates and sum data that falls between dates
                                     for (let i = 1; i < compileDates.length; i++) {
                                         let intervalData = goalData.filter(data => {
                                             return data.timestamp.getTime() <= compileDates[i].date.getTime() && data.timestamp.getTime() > compileDates[i - 1].date.getTime();
                                         })
-                                        sum = 0;
-                                        intervalData.forEach(data => sum += data.response);
-                                        sum /= 100;
-                                        if (Number.isNaN(sum)) sum = 0;
-                                        compiled.push({name: compileDates[i].date, "Incidents": sum});
+                                        if (intervalData.length === 0) {
+                                            compiled.push({name: compileDates[i].date, "Incidents": null})
+                                        } else {
+                                            sum = 0;
+                                            intervalData.forEach(data => sum += data.response);
+                                            sum /= 100;
+                                            if (Number.isNaN(sum)) sum = 0;
+                                            compiled.push({name: compileDates[i].date, "Incidents": sum});
+                                        }
                                     }
                                 } else if (goalData[0].area === 'meta') {
                                     const yes = goalData.filter(data => data.response === 100).length;
@@ -362,22 +362,30 @@ const sortData = (req, res, next) => {
                                 } else {
                                     // average all data before first date
                                     let firstDate = goalData.filter(data => data.timestamp < compileDates[0].date);
-                                    let average = 0;
-                                    firstDate.forEach(data => average += data.response);
-                                    average /= firstDate.length;
-                                    if (Number.isNaN(average)) average = 0;
-                                    // add a reponse object to array
-                                    compiled.push({name: compileDates[0].date, "Progress Data": average});
+                                    if (firstDate.length === 0) {
+                                        compiled.push({name: compileDates[0].name, "Progress Data": null})
+                                    } else {
+                                        let average = 0;
+                                        firstDate.forEach(data => average += data.response);
+                                        average /= firstDate.length;
+                                        if (Number.isNaN(average)) average = 0;
+                                        // add a reponse object to array
+                                        compiled.push({name: compileDates[0].date, "Progress Data": average});
+                                    }
                                     // iterate through compile dates and average data that falls between dates
                                     for (let i = 1; i < compileDates.length; i++) {
                                         let intervalData = goalData.filter(data => {
                                             return data.timestamp.getTime() <= compileDates[i].date.getTime() && data.timestamp.getTime() > compileDates[i - 1].date.getTime();
                                         })
-                                        average = 0;
-                                        intervalData.forEach(data => average += data.response);
-                                        average /= intervalData.length;
-                                        if (Number.isNaN(average)) average = 0;
-                                        compiled.push({name: compileDates[i].date, "Progress Data": average});
+                                        if (intervalData.length === 0) {
+                                            compiled.push({name: compileDates[i].date, "Progress Data": null})
+                                        } else {
+                                            average = 0;
+                                            intervalData.forEach(data => average += data.response);
+                                            average /= intervalData.length;
+                                            if (Number.isNaN(average)) average = 0;
+                                            compiled.push({name: compileDates[i].date, "Progress Data": average});
+                                        }
                                     }
                                 }
                                 if (compiled.length > 0) compiled[0]["Goal Line"] = goalData[0].baseline;
