@@ -302,7 +302,15 @@ const sortData = (req, res, next) => {
                 } else {
                     const rawData = results.rows;
                     const startDate = rawData[0].start_date;
-                    const compileString = 'SELECT * FROM compile_dates WHERE date <= CURRENT_DATE; ';
+                    const compileString = `WITH next_bool AS (SELECT * FROM compile_dates WHERE DATE > CURRENT_DATE 
+                                            AND type = 'bool' ORDER BY DATE LIMIT 1),
+                                           next_percent AS (SELECT * FROM compile_dates WHERE DATE > CURRENT_DATE 
+                                            AND type = 'percent' ORDER BY DATE LIMIT 1)
+                                           SELECT * FROM compile_dates WHERE DATE <= CURRENT_DATE
+                                            UNION 
+                                            SELECT * FROM next_bool
+                                            UNION 
+                                            SELECT * FROM next_percent ORDER BY date;`;
                     pool.query(compileString, (error, results) => {
                         if (error) {
                             console.log(error)
