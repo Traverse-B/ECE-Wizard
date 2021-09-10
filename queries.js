@@ -4,7 +4,7 @@ const { Pool } = require('pg');
 const { string } = require('pg-format');
 
 
-const LOCAL = false;
+const LOCAL = true;
 let pool;
 if (LOCAL) {
     pool = new Pool({
@@ -302,7 +302,7 @@ const sortData = (req, res, next) => {
                 } else {
                     const rawData = results.rows;
                     const startDate = rawData[0].start_date;
-                    const compileString = 'SELECT * FROM compile_dates; ';
+                    const compileString = 'SELECT * FROM compile_dates WHERE date <= CURRENT_DATE; ';
                     pool.query(compileString, (error, results) => {
                         if (error) {
                             console.log(error)
