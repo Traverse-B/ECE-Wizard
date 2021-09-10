@@ -330,14 +330,14 @@ const sortData = (req, res, next) => {
                                 if (goalData[0].area === 'BIP') {
                                     let firstDate = goalData.filter(data => data.timestamp < compileDates[0].date);
                                     if (firstDate.length === 0) {
-                                        compiled.push({name: compileDates[0].date, "Incidents": null})
+                                        compiled.push({name: new Date(compileDates[0].date).toLocaleDateString(), "Incidents": null})
                                     } else {
                                         let sum = 0;
                                         firstDate.forEach(data => sum += data.response);
                                         sum /= 100;
                                         if (Number.isNaN(sum)) sum = 0;
                                         // add a reponse object to array
-                                        compiled.push({name: compileDates[0].date, "Incidents": sum});
+                                        compiled.push({name: new Date(compileDates[0].date).toLocaleDateString(), "Incidents": sum});
                                     }
                                     // iterate through compile dates and sum data that falls between dates
                                     for (let i = 1; i < compileDates.length; i++) {
@@ -345,13 +345,13 @@ const sortData = (req, res, next) => {
                                             return data.timestamp.getTime() <= compileDates[i].date.getTime() && data.timestamp.getTime() > compileDates[i - 1].date.getTime();
                                         })
                                         if (intervalData.length === 0) {
-                                            compiled.push({name: compileDates[i].date, "Incidents": null})
+                                            compiled.push({name: new Date(compileDates[i].date).toLocaleDateString(), "Incidents": null})
                                         } else {
                                             sum = 0;
                                             intervalData.forEach(data => sum += data.response);
                                             sum /= 100;
                                             if (Number.isNaN(sum)) sum = 0;
-                                            compiled.push({name: compileDates[i].date, "Incidents": sum});
+                                            compiled.push({name: new Date(compileDates[i].date).toLocaleDateString(), "Incidents": sum});
                                         }
                                     }
                                 } else if (goalData[0].area === 'meta') {
@@ -363,14 +363,14 @@ const sortData = (req, res, next) => {
                                     // average all data before first date
                                     let firstDate = goalData.filter(data => data.timestamp < compileDates[0].date);
                                     if (firstDate.length === 0) {
-                                        compiled.push({name: compileDates[0].name, "Progress Data": null})
+                                        compiled.push({name: new Date(compileDates[0].date).toLocaleDateString(), "Progress Data": null})
                                     } else {
                                         let average = 0;
                                         firstDate.forEach(data => average += data.response);
                                         average /= firstDate.length;
                                         if (Number.isNaN(average)) average = 0;
                                         // add a reponse object to array
-                                        compiled.push({name: compileDates[0].date, "Progress Data": average});
+                                        compiled.push({name: new Date(compileDates[0].date).toLocaleDateString(), "Progress Data": average});
                                     }
                                     // iterate through compile dates and average data that falls between dates
                                     for (let i = 1; i < compileDates.length; i++) {
@@ -378,13 +378,13 @@ const sortData = (req, res, next) => {
                                             return data.timestamp.getTime() <= compileDates[i].date.getTime() && data.timestamp.getTime() > compileDates[i - 1].date.getTime();
                                         })
                                         if (intervalData.length === 0) {
-                                            compiled.push({name: compileDates[i].date, "Progress Data": null})
+                                            compiled.push({name: new Date(compileDates[i].date).toLocaleDateString(), "Progress Data": null})
                                         } else {
                                             average = 0;
                                             intervalData.forEach(data => average += data.response);
                                             average /= intervalData.length;
                                             if (Number.isNaN(average)) average = 0;
-                                            compiled.push({name: compileDates[i].date, "Progress Data": average});
+                                            compiled.push({name: new Date(compileDates[i].date).toLocaleDateString(), "Progress Data": average});
                                         }
                                     }
                                 }
