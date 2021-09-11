@@ -301,6 +301,10 @@ const sortData = (req, res, next) => {
                     res.status(400).send();
                 } else {
                     const rawData = results.rows;
+                    if (!rawData[0]) {
+                        console.log('no data')
+                        res.status(404).send();
+                    }
                     const startDate = rawData[0].start_date;
                     const compileString = `SELECT * FROM compile_dates ORDER BY date`;
                     pool.query(compileString, (error, results) => {
