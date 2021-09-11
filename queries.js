@@ -301,7 +301,7 @@ const sortData = (req, res, next) => {
                     res.status(400).send();
                 } else {
                     const rawData = results.rows;
-                    if (!rawData[0]) {
+                    if (!rawData) {
                         console.log('no data')
                         res.status(404).send();
                     }
