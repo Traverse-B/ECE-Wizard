@@ -4,7 +4,7 @@ const { Pool } = require('pg');
 const { string } = require('pg-format');
 
 
-const LOCAL = false;
+const LOCAL = true;
 let pool;
 if (LOCAL) {
     pool = new Pool({
@@ -301,114 +301,115 @@ const sortData = (req, res, next) => {
                     res.status(400).send();
                 } else {
                     const rawData = results.rows;
-                    if (!rawData[0]) {
-                        console.log('no data')
+                    if (rawData.length === 0) {
+                        console.log('WARNING:  NO DATA');
                         res.status(404).send();
-                    }
-                    const startDate = rawData[0].start_date;
-                    const compileString = `SELECT * FROM compile_dates ORDER BY date`;
-                    pool.query(compileString, (error, results) => {
-                        if (error) {
-                            console.log(error)
-                            res.status(400).send();
-                        } else {
-                            const rawDates = results.rows;
-                            const boolDates = rawDates.filter(date => date.type === 'bool');
-                            const percentDates = rawDates.filter(date => date.type === 'percent');
-                            //find ids
-                            let id = 0;
-                            let ids = []
-                            for (let i = 0; i < rawData.length; i++) {
-                                if (id !== rawData[i].iep_goal_id) {
-                                    id = rawData[i].iep_goal_id;
-                                    ids.push(rawData[i].iep_goal_id);
-                                }
-                            }
-                            const response = []
-                            ids.forEach(id => {
-                                const goalData = rawData.filter(data => data.iep_goal_id === id);
-                                //now compile
-                                let compileDates = goalData[0].type.toLowerCase() === 'bool' ? boolDates : percentDates;
-                                // iterate through data; sum results that fall between dates
-                                const compiled = [];
-                                if (goalData[0].area === 'BIP') {
-                                    let firstDate = goalData.filter(data => data.timestamp < compileDates[0].date);
-                                    if (firstDate.length === 0) {
-                                        compiled.push({name: new Date(compileDates[0].date).toLocaleDateString(), "Incidents": null})
-                                    } else {
-                                        let sum = 0;
-                                        firstDate.forEach(data => sum += data.response);
-                                        sum /= 100;
-                                        if (Number.isNaN(sum)) sum = 0;
-                                        // add a reponse object to array
-                                        compiled.push({name: new Date(compileDates[0].date).toLocaleDateString(), "Incidents": sum});
+                    } else {
+                        const startDate = rawData[0].start_date;
+                        const compileString = `SELECT * FROM compile_dates ORDER BY date`;
+                        pool.query(compileString, (error, results) => {
+                            if (error) {
+                                console.log(error)
+                                res.status(400).send();
+                            } else {
+                                const rawDates = results.rows;
+                                const boolDates = rawDates.filter(date => date.type === 'bool');
+                                const percentDates = rawDates.filter(date => date.type === 'percent');
+                                //find ids
+                                let id = 0;
+                                let ids = []
+                                for (let i = 0; i < rawData.length; i++) {
+                                    if (id !== rawData[i].iep_goal_id) {
+                                        id = rawData[i].iep_goal_id;
+                                        ids.push(rawData[i].iep_goal_id);
                                     }
-                                    // iterate through compile dates and sum data that falls between dates
-                                    for (let i = 1; i < compileDates.length; i++) {
-                                        let intervalData = goalData.filter(data => {
-                                            return data.timestamp.getTime() <= compileDates[i].date.getTime() && data.timestamp.getTime() > compileDates[i - 1].date.getTime();
-                                        })
-                                        if (intervalData.length === 0) {
-                                            compiled.push({name: new Date(compileDates[i].date).toLocaleDateString(), "Incidents": null})
+                                }
+                                const response = []
+                                ids.forEach(id => {
+                                    const goalData = rawData.filter(data => data.iep_goal_id === id);
+                                    //now compile
+                                    let compileDates = goalData[0].type.toLowerCase() === 'bool' ? boolDates : percentDates;
+                                    // iterate through data; sum results that fall between dates
+                                    const compiled = [];
+                                    if (goalData[0].area === 'BIP') {
+                                        let firstDate = goalData.filter(data => data.timestamp < compileDates[0].date);
+                                        if (firstDate.length === 0) {
+                                            compiled.push({name: new Date(compileDates[0].date).toLocaleDateString(), "Incidents": null})
                                         } else {
-                                            sum = 0;
-                                            intervalData.forEach(data => sum += data.response);
+                                            let sum = 0;
+                                            firstDate.forEach(data => sum += data.response);
                                             sum /= 100;
                                             if (Number.isNaN(sum)) sum = 0;
-                                            compiled.push({name: new Date(compileDates[i].date).toLocaleDateString(), "Incidents": sum});
+                                            // add a reponse object to array
+                                            compiled.push({name: new Date(compileDates[0].date).toLocaleDateString(), "Incidents": sum});
                                         }
-                                    }
-                                } else if (goalData[0].area === 'meta') {
-                                    const yes = goalData.filter(data => data.response === 100).length;
-                                    const no = goalData.length - yes;
-                                    compiled.push({name: 'yes', value: yes});
-                                    compiled.push({name: 'no', value: no});
-                                } else {
-                                    // average all data before first date
-                                    let firstDate = goalData.filter(data => data.timestamp < compileDates[0].date);
-                                    if (firstDate.length === 0) {
-                                        compiled.push({name: new Date(compileDates[0].date).toLocaleDateString(), "Progress Data": null})
+                                        // iterate through compile dates and sum data that falls between dates
+                                        for (let i = 1; i < compileDates.length; i++) {
+                                            let intervalData = goalData.filter(data => {
+                                                return data.timestamp.getTime() <= compileDates[i].date.getTime() && data.timestamp.getTime() > compileDates[i - 1].date.getTime();
+                                            })
+                                            if (intervalData.length === 0) {
+                                                compiled.push({name: new Date(compileDates[i].date).toLocaleDateString(), "Incidents": null})
+                                            } else {
+                                                sum = 0;
+                                                intervalData.forEach(data => sum += data.response);
+                                                sum /= 100;
+                                                if (Number.isNaN(sum)) sum = 0;
+                                                compiled.push({name: new Date(compileDates[i].date).toLocaleDateString(), "Incidents": sum});
+                                            }
+                                        }
+                                    } else if (goalData[0].area === 'meta') {
+                                        const yes = goalData.filter(data => data.response === 100).length;
+                                        const no = goalData.length - yes;
+                                        compiled.push({name: 'yes', value: yes});
+                                        compiled.push({name: 'no', value: no});
                                     } else {
-                                        let average = 0;
-                                        firstDate.forEach(data => average += data.response);
-                                        average /= firstDate.length;
-                                        if (Number.isNaN(average)) average = 0;
-                                        // add a reponse object to array
-                                        compiled.push({name: new Date(compileDates[0].date).toLocaleDateString(), "Progress Data": average});
-                                    }
-                                    // iterate through compile dates and average data that falls between dates
-                                    for (let i = 1; i < compileDates.length; i++) {
-                                        let intervalData = goalData.filter(data => {
-                                            return data.timestamp.getTime() <= compileDates[i].date.getTime() && data.timestamp.getTime() > compileDates[i - 1].date.getTime();
-                                        })
-                                        if (intervalData.length === 0) {
-                                            compiled.push({name: new Date(compileDates[i].date).toLocaleDateString(), "Progress Data": null})
+                                        // average all data before first date
+                                        let firstDate = goalData.filter(data => data.timestamp < compileDates[0].date);
+                                        if (firstDate.length === 0) {
+                                            compiled.push({name: new Date(compileDates[0].date).toLocaleDateString(), "Progress Data": null})
                                         } else {
-                                            average = 0;
-                                            intervalData.forEach(data => average += data.response);
-                                            average /= intervalData.length;
+                                            let average = 0;
+                                            firstDate.forEach(data => average += data.response);
+                                            average /= firstDate.length;
                                             if (Number.isNaN(average)) average = 0;
-                                            compiled.push({name: new Date(compileDates[i].date).toLocaleDateString(), "Progress Data": average});
+                                            // add a reponse object to array
+                                            compiled.push({name: new Date(compileDates[0].date).toLocaleDateString(), "Progress Data": average});
+                                        }
+                                        // iterate through compile dates and average data that falls between dates
+                                        for (let i = 1; i < compileDates.length; i++) {
+                                            let intervalData = goalData.filter(data => {
+                                                return data.timestamp.getTime() <= compileDates[i].date.getTime() && data.timestamp.getTime() > compileDates[i - 1].date.getTime();
+                                            })
+                                            if (intervalData.length === 0) {
+                                                compiled.push({name: new Date(compileDates[i].date).toLocaleDateString(), "Progress Data": null})
+                                            } else {
+                                                average = 0;
+                                                intervalData.forEach(data => average += data.response);
+                                                average /= intervalData.length;
+                                                if (Number.isNaN(average)) average = 0;
+                                                compiled.push({name: new Date(compileDates[i].date).toLocaleDateString(), "Progress Data": average});
+                                            }
                                         }
                                     }
-                                }
-                                if (compiled.length > 0) compiled[0]["Goal Line"] = goalData[0].baseline;
-                                if (compiled.length > 1) compiled[compiled.length - 1]["Goal Line"] = goalData[0].goal_percent;
-                                response.push({ 
-                                    goal: goalData[0].goal,
-                                    area: goalData[0].area,
-                                    description: goalData[0].description,
-                                    compiled: compiled
+                                    if (compiled.length > 0) compiled[0]["Goal Line"] = goalData[0].baseline;
+                                    if (compiled.length > 1) compiled[compiled.length - 1]["Goal Line"] = goalData[0].goal_percent;
+                                    response.push({ 
+                                        goal: goalData[0].goal,
+                                        area: goalData[0].area,
+                                        description: goalData[0].description,
+                                        compiled: compiled
+                                    })
                                 })
-                            })
-                            res.send({
-                                name: `${studentInfo.first_name} ${studentInfo.last_name}`,
-                                start_date: startDate,
-                                disability: studentInfo.disability,
-                                response: response
-                            })
-                        }
-                    })
+                                res.send({
+                                    name: `${studentInfo.first_name} ${studentInfo.last_name}`,
+                                    start_date: startDate,
+                                    disability: studentInfo.disability,
+                                    response: response
+                                })
+                            }
+                        })
+                    }
                 }
             })
         }
