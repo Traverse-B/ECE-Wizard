@@ -83,7 +83,7 @@ content-type: application/json
 ###
 
 //Get all responses for student's current goal
-GET http://localhost:3001/students/3333/responses HTTP/1.1
+GET http://localhost:3001/students/4444/responses HTTP/1.1
 content-type: application/json
 
 ###

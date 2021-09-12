@@ -274,14 +274,25 @@ const compile = (req, res, next) => {
 }
 
 const sortData = (req, res, next) => {
-    const studentString = format(`SELECT first_name, last_name, disability FROM student WHERE id = %s`, req.id);
+    const studentString = format(`WITH current_iep AS (
+        with selected_student AS (
+            SELECT id, first_name, last_name, disability FROM student WHERE id = %s
+        )
+       SELECT iep.id, start_date, first_name, last_name, disability FROM iep, selected_student WHERE student_id = selected_student.id 
+       AND CURRENT_DATE BETWEEN start_date AND end_date
+    )
+    SELECT iep_goal.id, response_type, area, first_name, last_name, disability, goal, description FROM current_iep JOIN iep_goal
+    ON iep_goal.iep_id = current_iep.id;`, req.id);
     console.log(studentString);
     pool.query(studentString, (error, results) => {
         if (error) {
             console.log(error);
             res.status(400).send();
         } else {
-            studentInfo = results.rows[0];
+            const studentInfo = results.rows;
+            const ids = studentInfo.map(info => {
+                return {id: info.id, area: info.area, goal: info.goal, description: info.description}
+            })
             const queryString = format(
                 `WITH iep_goals AS (
                     WITH current_iep AS (
@@ -301,36 +312,49 @@ const sortData = (req, res, next) => {
                     res.status(400).send();
                 } else {
                     const rawData = results.rows;
-                    if (rawData.length === 0) {
-                        console.log('WARNING:  NO DATA');
-                        res.status(404).send();
-                    } else {
-                        const startDate = rawData[0].start_date;
-                        const compileString = `SELECT * FROM compile_dates ORDER BY date`;
-                        pool.query(compileString, (error, results) => {
-                            if (error) {
-                                console.log(error)
-                                res.status(400).send();
-                            } else {
-                                const rawDates = results.rows;
-                                const boolDates = rawDates.filter(date => date.type === 'bool');
-                                const percentDates = rawDates.filter(date => date.type === 'percent');
-                                //find ids
-                                let id = 0;
-                                let ids = []
-                                for (let i = 0; i < rawData.length; i++) {
-                                    if (id !== rawData[i].iep_goal_id) {
-                                        id = rawData[i].iep_goal_id;
-                                        ids.push(rawData[i].iep_goal_id);
+                    const startDate = studentInfo[0].start_date;
+                    const compileString = `SELECT * FROM compile_dates ORDER BY date`;
+                    pool.query(compileString, (error, results) => {
+                        if (error) {
+                            console.log(error)
+                            res.status(400).send();
+                        } else {
+                            const rawDates = results.rows;
+                            const boolDates = rawDates.filter(date => date.type === 'bool');
+                            const percentDates = rawDates.filter(date => date.type === 'percent');
+                            const response = []
+                            ids.forEach(entry => {
+                                let id = entry.id;
+                                const compiled = [];
+                                const goalData = rawData.filter(data => data.iep_goal_id === id);
+                                //if there is no data for the goal
+                                if (goalData.length === 0) {
+                                    if (entry.area === 'BIP') {
+                                        boolDates.forEach(date => {
+                                            compiled.push({name: new Date(date.date).toLocaleDateString(), "Incidents": null})
+                                        })
+                                    } else if (entry.area === 'meta') {
+                                        compiled.push({name: 'yes', value: null});
+                                        compiled.push({name: 'no', value: null});
+                                    } else if (entry.area === 'All') {
+                                        boolDates.forEach(date => {
+                                            compiled.push({name: new Date(date.date).toLocaleDateString(), "Progress Data": null})
+                                        })
+                                    } else {
+                                        percentDates.forEach(date => {
+                                            compiled.push({name: new Date(date.date).toLocaleDateString(), "Progress Data": null})
+                                        })
                                     }
-                                }
-                                const response = []
-                                ids.forEach(id => {
-                                    const goalData = rawData.filter(data => data.iep_goal_id === id);
+                                    response.push({ 
+                                        goal: entry.goal,
+                                        area: entry.area,
+                                        description: entry.description,
+                                        compiled: compiled
+                                    })
+                                } else {
                                     //now compile
                                     let compileDates = goalData[0].type.toLowerCase() === 'bool' ? boolDates : percentDates;
                                     // iterate through data; sum results that fall between dates
-                                    const compiled = [];
                                     if (goalData[0].area === 'BIP') {
                                         let firstDate = goalData.filter(data => data.timestamp < compileDates[0].date);
                                         if (firstDate.length === 0) {
@@ -400,16 +424,16 @@ const sortData = (req, res, next) => {
                                         description: goalData[0].description,
                                         compiled: compiled
                                     })
-                                })
-                                res.send({
-                                    name: `${studentInfo.first_name} ${studentInfo.last_name}`,
-                                    start_date: startDate,
-                                    disability: studentInfo.disability,
-                                    response: response
-                                })
-                            }
-                        })
-                    }
+                                } 
+                            })
+                            res.send({
+                                name: `${studentInfo[0].first_name} ${studentInfo[0].last_name}`,
+                                start_date: startDate,
+                                disability: studentInfo[0].disability,
+                                response: response
+                            })
+                        }
+                    })
                 }
             })
         }
