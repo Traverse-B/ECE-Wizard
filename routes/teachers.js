@@ -61,14 +61,16 @@ teacherRouter.get(
               ON excluded.student_id = teachers_students.student_id 
               AND excluded.reporter = teachers_students.teacher_login 
             )
-          SELECT iep.student_id, id, role, coteacher_login FROM students, iep
+          SELECT (SELECT exists(SELECT 1 FROM calendar WHERE date(DATE) = CURRENT_DATE)) AS gate, 
+            iep.student_id, id, role, coteacher_login FROM students, iep
           WHERE iep.student_id = students.student_id
           AND start_date < CURRENT_DATE
           AND end_date > CURRENT_DATE
           AND NOT role = 'TOR')
         SELECT DISTINCT ON (student.id) student.id AS student_id, active_ieps.id, first_name, last_name, role, coteacher_login
         FROM active_ieps, student
-        WHERE active_ieps.student_id = student.id`, 0),
+        WHERE active_ieps.student_id = student.id
+        AND gate = true`, 0),
     
     db.returnQuery
 );
