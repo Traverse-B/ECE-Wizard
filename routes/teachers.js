@@ -64,7 +64,8 @@ teacherRouter.get(
           SELECT iep.student_id, id, role, coteacher_login FROM students, iep
           WHERE iep.student_id = students.student_id
           AND start_date < CURRENT_DATE
-          AND end_date > CURRENT_DATE)
+          AND end_date > CURRENT_DATE
+          AND NOT role = 'TOR')
         SELECT DISTINCT ON (student.id) student.id AS student_id, active_ieps.id, first_name, last_name, role, coteacher_login
         FROM active_ieps, student
         WHERE active_ieps.student_id = student.id`, 0),
