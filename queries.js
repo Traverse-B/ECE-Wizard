@@ -4,7 +4,7 @@ const { Pool } = require('pg');
 const { string } = require('pg-format');
 
 
-const LOCAL = false;
+const LOCAL = true;
 let pool;
 if (LOCAL) {
     pool = new Pool({
@@ -513,7 +513,9 @@ const iepForDate = (req, res, next) => {
             WHERE active_iep.student_id = teachers_students.student_id
                 AND (%L = teachers_students.teacher_login OR %L = teachers_students.coteacher_login)
                 AND NOT role = 'TOR')
-            SELECT DISTINCT iep_goal.id, iep_goal.data_question, iep_goal.response_type, iep_goal.id, info.student_id, info.id AS iep_id
+            SELECT DISTINCT iep_goal.id, iep_goal.data_question, iep_goal.response_type, 
+                (SELECT MAX(TIMESTAMP) FROM goal_data WHERE iep_goal_id = iep_goal.id) AS last_response,
+                info.student_id, info.id AS iep_id
             FROM iep_goal, info
             WHERE info.id = iep_goal.iep_id
             AND (iep_goal.area = role OR iep_goal.area IN('All', 'BIP', 'meta'));`, 
@@ -654,6 +656,7 @@ const postResponse = (req, res, next) => {
 }
 
 
+
 module.exports = {
     begin,
     checkExists,
@@ -677,5 +680,5 @@ module.exports = {
     updateStudent,
     updateTeacher,
     postResponse,
-    sortData
+    sortData,
 }

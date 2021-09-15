@@ -99,7 +99,7 @@ teacherRouter.get('/:id/caseload',
                       SELECT student_id, start_date, end_date FROM teachers_students
                       WHERE teacher_login = %L
                       AND role = 'TOR'
-                      AND start_date < CURRENT_DATE AND end_date > CURRENT_DATE
+                      AND start_date <= CURRENT_DATE AND end_date > CURRENT_DATE
                     )
                     SELECT first_name, last_name, student_id, start_date, end_date, disability FROM students 
                     JOIN student ON students.student_id = student.id`, 0
