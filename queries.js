@@ -4,7 +4,7 @@ const { Pool } = require('pg');
 const { string } = require('pg-format');
 
 
-const LOCAL = true;
+const LOCAL = false;
 let pool;
 if (LOCAL) {
     pool = new Pool({
