@@ -4,7 +4,7 @@ const { Pool } = require('pg');
 const { string } = require('pg-format');
 
 
-const LOCAL = false;
+const LOCAL = true;
 let pool;
 if (LOCAL) {
     pool = new Pool({
@@ -447,39 +447,45 @@ const sortData = (req, res, next) => {
 
 const getMissing = (req, res, next) => {
     const queryString = format(
-        `WITH missing_list AS
-         (WITH timespan AS (
-            WITH first_inq AS (
-                SELECT 	start_date AS teacher_start_date, 
-                          end_date AS teacher_end_date, 
-                          student_id,
-                          teacher_login,
-                          coteacher_login
-                  FROM teachers_students 
-                WHERE (teacher_login = %L 
-                OR coteacher_login = %L)
-                AND NOT role = 'TOR'
-            )
-            SELECT teacher_start_date, teacher_end_date, sec_inq.student_id, 
-                start_date AS iep_start_date, end_date AS iep_end_date, teacher_login, coteacher_login, id 
-            FROM first_inq JOIN (SELECT * FROM iep WHERE start_date < CURRENT_DATE
-                AND end_date > CURRENT_DATE) AS sec_inq
-            ON first_inq.student_id = sec_inq.student_id
-            )
-            SELECT DATE(date) AS date, timespan.student_id, timespan.teacher_login, timespan.coteacher_login FROM calendar, timespan
-            WHERE date > teacher_start_date 
-                AND date > iep_start_date
-                AND date < teacher_end_date
-                AND date < iep_end_date
-                AND date < CURRENT_DATE
-            EXCEPT SELECT DATE(timestamp) AS date, student_id, reporter, coteacher FROM attendance 
-                WHERE reporter = %L
-                    OR coteacher = %L
-            ORDER BY date) 
-            SELECT date, student_id, first_name, last_name, teacher_login, coteacher_login FROM missing_list
-            JOIN student ON missing_list.student_id = student.id
-            ORDER BY date DESC;
-            `, req.id, req.id, req.id, req.id
+        `WITH last_step AS (WITH missing_list AS
+            (WITH timespan AS (
+               WITH first_inq AS (
+                   SELECT 	start_date AS teacher_start_date, 
+                             end_date AS teacher_end_date, 
+                             student_id,
+                             teacher_login,
+                             coteacher_login
+                     FROM teachers_students 
+                   WHERE (teacher_login = %L 
+                   OR coteacher_login = %L)
+                   AND NOT role = 'TOR'
+               )
+               SELECT teacher_start_date, teacher_end_date, sec_inq.student_id, 
+                   start_date AS iep_start_date, end_date AS iep_end_date, teacher_login, coteacher_login, id 
+               FROM first_inq JOIN (SELECT * FROM iep WHERE start_date < CURRENT_DATE
+                   AND end_date > CURRENT_DATE) AS sec_inq
+               ON first_inq.student_id = sec_inq.student_id
+               )
+               SELECT DATE(date) AS date, timespan.student_id FROM calendar, timespan
+               WHERE date > teacher_start_date 
+                   AND date > iep_start_date
+                   AND date < teacher_end_date
+                   AND date < iep_end_date
+                   AND date < CURRENT_DATE
+               EXCEPT SELECT DATE(timestamp) AS date, student_id FROM attendance 
+                   WHERE reporter = %L
+                       OR coteacher = %L
+               ORDER BY date) 
+               SELECT date, student_id, first_name, last_name FROM missing_list
+               JOIN student ON missing_list.student_id = student.id
+               ORDER BY date DESC)
+   SELECT distinct last_step.student_id, DATE, first_name, last_name, teacher_login, coteacher_login 
+   FROM last_step, teachers_students 
+   WHERE last_step.student_id = teachers_students.student_id
+   AND (teacher_login = %L OR coteacher_login = %L) 
+   AND NOT teachers_students.role = 'TOR'
+   ORDER BY DATE desc;
+            `, req.id, req.id, req.id, req.id, req.id, req.id
     );
     console.log(queryString)
     pool.query(queryString, (error, results) => {
