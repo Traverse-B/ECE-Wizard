@@ -453,29 +453,30 @@ const getMissing = (req, res, next) => {
                 SELECT 	start_date AS teacher_start_date, 
                           end_date AS teacher_end_date, 
                           student_id,
+                          teacher_login,
                           coteacher_login
                   FROM teachers_students 
                 WHERE (teacher_login = %L 
                 OR coteacher_login = %L)
-                AND NOT role = 'Case Manager'
+                AND NOT role = 'TOR'
             )
             SELECT teacher_start_date, teacher_end_date, sec_inq.student_id, 
-                start_date AS iep_start_date, end_date AS iep_end_date, coteacher_login, id 
+                start_date AS iep_start_date, end_date AS iep_end_date, teacher_login, coteacher_login, id 
             FROM first_inq JOIN (SELECT * FROM iep WHERE start_date < CURRENT_DATE
                 AND end_date > CURRENT_DATE) AS sec_inq
             ON first_inq.student_id = sec_inq.student_id
             )
-            SELECT DATE(date) AS date, timespan.student_id FROM calendar, timespan
+            SELECT DATE(date) AS date, timespan.student_id, timespan.teacher_login, timespan.coteacher_login FROM calendar, timespan
             WHERE date > teacher_start_date 
                 AND date > iep_start_date
                 AND date < teacher_end_date
                 AND date < iep_end_date
                 AND date < CURRENT_DATE
-            EXCEPT SELECT DATE(timestamp) AS date, student_id FROM attendance 
+            EXCEPT SELECT DATE(timestamp) AS date, student_id, reporter, coteacher FROM attendance 
                 WHERE reporter = %L
                     OR coteacher = %L
             ORDER BY date) 
-            SELECT date, student_id, first_name, last_name FROM missing_list
+            SELECT date, student_id, first_name, last_name, teacher_login, coteacher_login FROM missing_list
             JOIN student ON missing_list.student_id = student.id
             ORDER BY date DESC;
             `, req.id, req.id, req.id, req.id
@@ -493,9 +494,9 @@ const getMissing = (req, res, next) => {
                     missingStudents.length === 0 || 
                     JSON.stringify(missingStudents[missingStudents.length - 1].date) !== JSON.stringify(entry.date)
                 ) {
-                    missingStudents.push({date: entry.date, students: [{id: entry.student_id, name: `${entry.first_name} ${entry.last_name}`}]});
+                    missingStudents.push({date: entry.date, students: [{id: entry.student_id, name: `${entry.first_name} ${entry.last_name}`, teacher_login: entry.teacher_login, coteacher_login: entry.coteacher_login}]});
                 } else {
-                    missingStudents[missingStudents.length - 1].students.push({id: entry.student_id, name: `${entry.first_name} ${entry.last_name}`});
+                    missingStudents[missingStudents.length - 1].students.push({id: entry.student_id, name: `${entry.first_name} ${entry.last_name}`, teacher_login: entry.teacher_login, coteacher_login: entry.coteacher_login});
                 }
             })
             console.log('Whew!  That was a big query!  Sent!')
