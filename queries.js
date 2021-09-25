@@ -667,6 +667,32 @@ const postResponse = (req, res, next) => {
     next();
 }
 
+const dataform = (req, res, next) => {
+    req.queryString += format(`
+        WITH students AS (
+          WITH today AS (
+            SELECT DATE FROM calendar WHERE DATE = CURRENT_DATE)
+          SELECT student_id FROM teachers_students, today 
+          WHERE teacher_login = %L OR coteacher_login = %L
+          AND NOT ROLE = 'TOR'
+          AND start_date < date
+          AND end_date > date
+          EXCEPT SELECT student_id FROM attendance 
+          WHERE (reporter = %L OR coteacher = %L)
+          AND DATE(TIMESTAMP) = CURRENT_DATE)
+        SELECT distinct ON (students.student_id) students.student_id, iep.id AS id, first_name, last_name, ROLE, teacher_login, coteacher_login
+        FROM students, iep, student, teachers_students
+        WHERE iep.student_id = students.student_id
+        AND iep.start_date < CURRENT_DATE
+        AND iep.end_date > CURRENT_DATE
+        AND student.id = students.student_id
+        AND teachers_students.student_id = students.student_id
+        AND (teachers_students.teacher_login = %L OR teachers_students.coteacher_login = %L)
+        AND NOT ROLE = 'TOR'; 
+    `, req.id, req.id, req.id, req.id, req.id, req.id);
+    next();
+}
+
 
 
 module.exports = {
@@ -693,4 +719,5 @@ module.exports = {
     updateTeacher,
     postResponse,
     sortData,
+    dataform
 }

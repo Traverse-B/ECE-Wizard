@@ -38,42 +38,7 @@ teacherRouter.put('/:id', db.updateTeacher, db.runQuery);
 teacherRouter.delete('/:id', db.deleteRows, db.runQuery);
 
 // Get active IEPs for all students assigned to a teacher
-teacherRouter.get(
-    '/:id/dataform', 
-    db.custom(
-        ` WITH active_ieps AS (
-            WITH students AS (
-              SELECT teachers_students.student_id, role, teacher_login, coteacher_login FROM teachers_students
-              WHERE (teacher_login = %L `, 0),
-    db.custom(`OR coteacher_login = %L) `, 0),
-    db.custom(
-              `AND NOT role = 'TOR'
-              AND NOW() > start_date
-              AND NOW() < end_date
-              EXCEPT SELECT excluded.student_id, role, reporter, coteacher
-              FROM (SELECT date, exclude.student_id, coteacher, reporter 
-                  FROM (SELECT DISTINCT DATE(timestamp) AS date, student_id, reporter, coteacher FROM attendance
-                  WHERE CURRENT_DATE = DATE(attendance.timestamp)) AS exclude
-                  WHERE reporter = %L `, 0),
-    db.custom(
-              `or coteacher = %L) AS excluded 
-              JOIN teachers_students 
-              ON excluded.student_id = teachers_students.student_id 
-              AND excluded.reporter = teachers_students.teacher_login 
-            )
-          SELECT (SELECT exists(SELECT 1 FROM calendar WHERE date(DATE) = CURRENT_DATE)) AS gate, 
-            iep.student_id, id, role, teacher_login, coteacher_login FROM students, iep
-          WHERE iep.student_id = students.student_id
-          AND start_date < CURRENT_DATE
-          AND end_date > CURRENT_DATE
-          AND NOT role = 'TOR')
-        SELECT DISTINCT ON (student.id) student.id AS student_id, active_ieps.id, first_name, last_name, role, teacher_login, coteacher_login
-        FROM active_ieps, student
-        WHERE active_ieps.student_id = student.id
-        AND gate = true`, 0),
-    
-    db.returnQuery
-);
+teacherRouter.get('/:id/dataform', db.dataform, db.returnQuery);
 
 // Get list of dates and students who are missing data
 teacherRouter.get('/:id/missingdata', db.getMissing);
