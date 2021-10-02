@@ -5,7 +5,7 @@ const db = require('../queries.js');
 
 /********************************************************* 
                                                          
- Teacher Router:  Creating & Deleting Individual Education Plans          
+ Teacher Router:  Creating & Deleting Teachers          
   
 *********************************************************/
 
@@ -27,6 +27,8 @@ teacherRouter.post('/', db.insert, db.returnQuery);
 
 // Validate data for :id parameter and attach to req object as req.id parameter
 teacherRouter.param('id', db.checkExists);
+
+teacherRouter.post('/:id/authenticate', db.authenticate);
 
 // Get teacher by login string
 teacherRouter.get('/:id', db.select(), db.returnQuery);

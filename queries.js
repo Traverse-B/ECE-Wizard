@@ -693,6 +693,23 @@ const dataform = (req, res, next) => {
     next();
 }
 
+const authenticate = (req, res, next) => {
+    req.queryString = format(
+        `
+            SELECT EXISTS(SELECT 1 FROM teacher WHERE secret = %L and login = %L) AS authenticated, name, user_type, login 
+            FROM teacher WHERE login = %L;
+        `, req.body.secret, req.id, req.id
+    )
+    pool.query(req.queryString, (error, result) => {
+        if (error) {
+            console.log(error);
+            res.status(400).send;
+        } else {
+            res.send(result.rows);
+        }
+    })
+}
+
 
 
 module.exports = {
@@ -719,5 +736,6 @@ module.exports = {
     updateTeacher,
     postResponse,
     sortData,
-    dataform
+    dataform,
+    authenticate
 }
